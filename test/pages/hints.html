@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Hints</title>
+<style>body{font:16px sans-serif} div.box{display:inline-block;padding:6px;margin:4px;border:1px solid #888}
+#wrap{position:relative;display:inline-block} #cover{position:absolute;inset:-4px;background:#ccc}</style></head>
+<body>
+  <p><a id="l1" href="#ziel">Ziel</a> <a id="l2" href="/long.html">Lange Seite</a> <button id="b">Knopf</button></p>
+  <div class="box" id="ctx" role="button">Kontextmenue</div>
+  <div class="box" id="hov" tabindex="0">Hover</div>
+  <div class="box" id="ptr" style="cursor:pointer">Zeiger</div>
+  <input id="inp">
+  <span id="wrap"><a id="covered" href="#verdeckt">verdeckt</a><span id="cover"></span></span>
+  <script>
+    window.log = [];
+    b.onclick = () => log.push("click:b");
+    ptr.addEventListener("click", () => log.push("click:ptr"));
+    ctx.addEventListener("contextmenu", e => { e.preventDefault(); log.push("ctx:" + e.button); });
+    hov.addEventListener("mouseover", () => log.push("hover"));
+  </script>
+</body></html>

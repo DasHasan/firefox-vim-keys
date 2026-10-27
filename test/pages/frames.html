@@ -1,0 +1,8 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Frames</title></head>
+<body>
+  <p><a id="top1" href="#oben">Oben</a></p>
+  <iframe id="fr" src="http://localhost:8766/frame-inner.html" style="width:400px;height:120px"></iframe>
+  <iframe id="hidden" src="http://localhost:8766/frame-inner.html" style="display:none"></iframe>
+  <script>window.log = []; addEventListener("message", e => log.push(e.data));</script>
+</body></html>

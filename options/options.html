@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Vim Keys – Einstellungen</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <h1>Vim Keys</h1>
+
+  <section>
+    <h2>Tastenbelegung</h2>
+    <p class="hint">Wird auf die Standardbelegung (wie Vimium C) angewendet. <code>map &lt;taste&gt; &lt;befehl&gt;</code>,
+      <code>unmap &lt;taste&gt;</code>, <code>unmapAll</code>, <code>#</code> für Kommentare.
+      Tasten: <code>j</code>, <code>gg</code>, <code>F</code>, <code>&lt;c-s-f&gt;</code>, <code>&lt;a-c-f&gt;</code>, <code>&lt;esc&gt;</code>, <code>&lt;f1&gt;</code>.</p>
+    <textarea id="mappings" spellcheck="false" rows="12"></textarea>
+    <ul id="errors" class="errors"></ul>
+    <button id="resetMappings" type="button">Eigene Belegung zurücksetzen</button>
+  </section>
+
+  <section>
+    <h2>Ausnahmen</h2>
+    <p class="hint">Auf passenden Seiten gehen die genannten Tasten direkt an die Seite. Leere Tastenliste = auf der Seite ganz aus.<br>
+      Muster: <code>reddit.com</code> (Host), <code>*.reddit.com</code> (mit Subdomains), <code>https://example.com/pfad</code> (Präfix,
+      <code>*</code> als Platzhalter), <code>^…</code> (regulärer Ausdruck).<br>
+      Tasten: <code>jk0123456789</code>, Sondertasten wie <code>&lt;c-j&gt;</code>.</p>
+    <table id="rules">
+      <thead><tr><th>URL-Muster</th><th>Tasten durchreichen</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <ul id="ruleErrors" class="errors"></ul>
+    <button id="addRule" type="button">Regel hinzufügen</button>
+  </section>
+
+  <div class="bar">
+    <button id="save" type="button" class="primary">Speichern</button>
+    <span id="status"></span>
+  </div>
+
+  <section>
+    <details>
+      <summary>Alle Befehle</summary>
+      <table id="commands"><tbody></tbody></table>
+    </details>
+  </section>
+
+  <template id="ruleRow">
+    <tr>
+      <td><input class="pattern" spellcheck="false" placeholder="z. B. *.reddit.com"></td>
+      <td><input class="passKeys" spellcheck="false" placeholder="leer = ganz aus"></td>
+      <td><button type="button" class="remove" title="Regel entfernen">✕</button></td>
+    </tr>
+  </template>
+
+  <script src="../shared/keys.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

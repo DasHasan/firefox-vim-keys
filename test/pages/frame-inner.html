@@ -1,0 +1,6 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Innen</title></head>
+<body>
+  <label><input type="checkbox" id="cb"> Ich bin kein Roboter</label>
+  <script>cb.onchange = () => parent.postMessage("cb:" + cb.checked, "*");</script>
+</body></html>
