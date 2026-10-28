@@ -1,7 +1,7 @@
-﻿# Selbsttest fuer ext-vim-keys. Voraussetzung: .\start-test-firefox.ps1 -Extension ext-vim-keys
-# Die Parser-/Regel-Logik testet zusaetzlich: node ext-vim-keys/test/unit-vim-keys.js
+﻿# Selbsttest fuer Vim Keys. Voraussetzung: .\tools\start-test-firefox.ps1
+# Die Parser-/Regel-Logik testet zusaetzlich: node test/unit-vim-keys.js
 $ErrorActionPreference = "Stop"
-. "$PSScriptRoot\..\..\test\Marionette.ps1"   # gemeinsame Testumgebung (Werkzeug-Repo)
+. "$PSScriptRoot\..\tools\Marionette.ps1"
 $base = "http://localhost:8765"
 $esc = [string][char]0xE00C
 $fail = @()
