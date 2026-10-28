@@ -67,12 +67,33 @@ const hints = (() => {
         "border:1px solid #c38a22;border-radius:3px;padding:0 3px;box-shadow:0 1px 3px #0005;text-transform:uppercase;white-space:nowrap");
       m.append(vkEl("span", "color:#d4ac3a"), vkEl("span"));
       m.dataset.label = labels[i];
+      m.style.zIndex = i;
       return { el, label: labels[i], marker: m };
     });
     found = [];
     o.root.replaceChildren(...items.map(it => it.marker));
     render("");
     o.attach();
+  }
+
+  // Leertaste: in jeder Gruppe sich überlappender Marker kommt der unterste nach vorn
+  function rotate() {
+    const vis = items.filter(it => it.marker.style.display !== "none");
+    const rs = vis.map(it => it.marker.getBoundingClientRect());
+    const parent = vis.map((_, i) => i);
+    const find = i => parent[i] === i ? i : (parent[i] = find(parent[i]));
+    for (let i = 0; i < vis.length; i++)
+      for (let j = i + 1; j < vis.length; j++)
+        if (rs[i].left < rs[j].right && rs[j].left < rs[i].right && rs[i].top < rs[j].bottom && rs[j].top < rs[i].bottom)
+          parent[find(i)] = find(j);
+    const groups = new Map();
+    vis.forEach((it, i) => { const g = find(i); groups.set(g, [...(groups.get(g) || []), it]); });
+    for (const g of groups.values()) {
+      if (g.length < 2) continue;
+      g.sort((a, b) => a.marker.style.zIndex - b.marker.style.zIndex);
+      const zs = g.map(it => it.marker.style.zIndex);
+      g.forEach((it, i) => { it.marker.style.zIndex = zs[(i - 1 + g.length) % g.length]; });
+    }
   }
 
   function clear() { items = []; found = []; o.host.remove(); }
@@ -91,6 +112,7 @@ const hints = (() => {
     let k = null;
     if (key === "<esc>" || key === "f" || key === "F") k = "<stop>";
     else if (key === "<backspace>") k = "<back>";
+    else if (key === "<space>") k = "<rotate>";
     else if (key.length === 1 && VK.HINT_CHARS.includes(key.toLowerCase())) k = key.toLowerCase();
     if (k) browser.runtime.sendMessage({ type: "hintsKey", key: k });
     return true;
@@ -105,6 +127,7 @@ const hints = (() => {
       }
       case "hintsShow": show(msg.labels); return;
       case "hintsFilter": render(msg.typed); return;
+      case "hintsRotate": rotate(); return;
       case "hintsHit": {
         const it = items.find(i => i.label === msg.label);
         clear();

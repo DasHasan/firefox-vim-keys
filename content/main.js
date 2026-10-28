@@ -139,6 +139,15 @@ function canScroll(el, axis, dir) {
 function scrollTarget(axis, dir) {
   for (let el = lastClicked?.isConnected ? lastClicked : deepActive(); el && el !== document.body && el !== document.documentElement; el = el.parentElement || el.getRootNode().host)
     if (el.nodeType === 1 && canScroll(el, axis, dir)) return el;
+  // fixiertes Overlay in der Bildmitte (z. B. Cookie-Dialog, auch im Shadow-DOM) vor der Seite scrollen
+  let hit = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
+  while (hit?.shadowRoot) { const inner = hit.shadowRoot.elementFromPoint(innerWidth / 2, innerHeight / 2); if (!inner || inner === hit) break; hit = inner; }
+  let overlayScroller = null;
+  for (let el = hit; el && el !== document.body && el !== document.documentElement; el = el.parentElement || el.getRootNode().host) {
+    if (el.nodeType !== 1) continue;
+    if (!overlayScroller && canScroll(el, axis, dir)) overlayScroller = el;
+    if (overlayScroller && getComputedStyle(el).position === "fixed") return overlayScroller;
+  }
   const se = document.scrollingElement || document.documentElement;
   if (canScroll(se, axis, dir)) return se;
   // z. B. Web-Apps, deren Inhalt in einem eigenen Container scrollt: größten sichtbaren nehmen

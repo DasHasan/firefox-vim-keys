@@ -1,4 +1,4 @@
-# Selbsttest fuer ext-vim-keys. Voraussetzung: .\start-test-firefox.ps1 -Extension ext-vim-keys
+﻿# Selbsttest fuer ext-vim-keys. Voraussetzung: .\start-test-firefox.ps1 -Extension ext-vim-keys
 # Die Parser-/Regel-Logik testet zusaetzlich: node ext-vim-keys/test/unit-vim-keys.js
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\..\..\test\Marionette.ps1"   # gemeinsame Testumgebung (Werkzeug-Repo)
@@ -146,6 +146,14 @@ try {
     Send-FFKeys "f"; Start-Sleep -Milliseconds 200
     $shotHints = Save-FFScreenshot (Join-Path $env:TEMP "ff-test-vim-keys-hints.png")
     Send-FFKeys $esc
+
+    Write-Host "Hints rotieren"
+    function TopHint { Js 'const m = [...document.querySelector("vim-keys-hints").shadowRoot.children]; return m.reduce((a, b) => +b.style.zIndex > +a.style.zIndex ? b : a).dataset.label' }
+    Open-FFUrl "$base/overlap.html"; Start-Sleep -Milliseconds 300
+    Send-FFKeys "f"; Start-Sleep -Milliseconds 300
+    $t0 = TopHint; Send-FFKeys " "; Start-Sleep -Milliseconds 200; $t1 = TopHint
+    Check ($t0 -and $t1 -and $t0 -ne $t1) "Leertaste rotiert ueberlappende Hints ($t0 -> $t1)"
+    Send-FFKeys $esc; Start-Sleep -Milliseconds 200
 
     Write-Host "Hints ueber Frames"
     Open-FFUrl "$base/frames.html"; Start-Sleep -Milliseconds 800

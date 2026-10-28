@@ -160,6 +160,7 @@ async function hintsKeyNow(tabId, key) {
   if (!st) return;
   await st.ready;
   if (key === "<stop>") { hintState.delete(tabId); return hintsBroadcast(tabId, st, { type: "hintsStop" }); }
+  if (key === "<rotate>") return hintsBroadcast(tabId, st, { type: "hintsRotate" });
   const next = key === "<back>" ? st.typed.slice(0, -1) : st.typed + key;
   const left = [...st.owner.keys()].filter(l => l.startsWith(next));
   if (!left.length) return;
