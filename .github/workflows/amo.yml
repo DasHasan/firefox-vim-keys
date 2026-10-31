@@ -1,0 +1,37 @@
+# Tag v<version> pushen -> gepacktes Zip (tools/pack.py) bei AMO als gelistete Version einreichen,
+# auf die Freigabe warten und die signierte xpi als GitHub-Release v<version> veröffentlichen.
+name: AMO
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version prüfen
+        run: |
+          v=$(python3 -c "import json; print(json.load(open('manifest.json'))['version'])")
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME passt nicht zu manifest.json ($v)"; exit 1; }
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - name: Packen
+        run: |
+          zip=$(python3 tools/pack.py | head -n1)
+          mkdir build && unzip -q "$zip" -d build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Bei AMO einreichen und auf Freigabe warten
+        run: npx --yes web-ext@8 sign --source-dir=build --artifacts-dir=signed --channel=listed --approval-timeout=20700000 --api-key="$AMO_JWT_ISSUER" --api-secret="$AMO_JWT_SECRET"
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+      - name: GitHub-Release
+        run: |
+          mv signed/*.xpi "vim-keys-$VERSION.xpi"
+          gh release create "$GITHUB_REF_NAME" "vim-keys-$VERSION.xpi" --title "$GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
