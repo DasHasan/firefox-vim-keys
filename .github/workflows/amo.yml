@@ -32,6 +32,8 @@ jobs:
       - name: GitHub-Release
         run: |
           mv signed/*.xpi "vim-keys-$VERSION.xpi"
-          gh release create "$GITHUB_REF_NAME" "vim-keys-$VERSION.xpi" --title "$GITHUB_REF_NAME" --generate-notes
+          # update_url im Manifest zeigt auf releases/latest/download/updates.json
+          python3 -c "import json; m = json.load(open('manifest.json')); g = m['browser_specific_settings']['gecko']; print(json.dumps({'addons': {g['id']: {'updates': [{'version': m['version'], 'update_link': 'https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/vim-keys-$VERSION.xpi'}]}}}, indent=2))" > updates.json
+          gh release create "$GITHUB_REF_NAME" "vim-keys-$VERSION.xpi" updates.json --title "$GITHUB_REF_NAME" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
