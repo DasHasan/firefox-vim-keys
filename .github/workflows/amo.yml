@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
       - name: Bei AMO einreichen und auf Freigabe warten
-        run: npx --yes web-ext@8 sign --source-dir=build --artifacts-dir=signed --channel=listed --approval-timeout=20700000 --api-key="$AMO_JWT_ISSUER" --api-secret="$AMO_JWT_SECRET"
+        run: npx --yes web-ext@8 sign --source-dir=build --artifacts-dir=signed --channel=listed --amo-metadata=.github/amo-metadata.json --approval-timeout=20700000 --api-key="$AMO_JWT_ISSUER" --api-secret="$AMO_JWT_SECRET"
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
