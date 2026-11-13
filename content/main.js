@@ -136,23 +136,36 @@ function run(cmd, n, opts, e) {
 let lastClicked = null, cachedScroller = null;
 addEventListener("click", e => { if (e.isTrusted) lastClicked = e.composedPath()[0]; }, true);
 
-function canScroll(el, axis, dir) {
+// Scrollbereich [lo, hi] einer Achse, null wenn nicht scrollbar. Umgekehrte Layouts (z. B. Chat-Verläufe
+// mit column-reverse, RTL): Position läuft von -(size-view) bis 0, „oben“ ist dann -max statt 0
+function scrollRange(el, axis) {
   const root = el === document.scrollingElement;
   const [pos, size, view] = axis === "y" ? ["scrollTop", "scrollHeight", "clientHeight"] : ["scrollLeft", "scrollWidth", "clientWidth"];
-  if (el[size] - el[view] < 2) return false;
+  const max = el[size] - el[view];
+  if (max < 2) return null;
   const cs = getComputedStyle(el);
-  if (!root && !/(auto|scroll|overlay)/.test(cs[axis === "y" ? "overflowY" : "overflowX"])) return false;
-  // umgekehrte Layouts (z. B. Chat-Verläufe mit column-reverse, RTL): Position läuft von -(size-view) bis 0
+  if (!root && !/(auto|scroll|overlay)/.test(cs[axis === "y" ? "overflowY" : "overflowX"])) return null;
   const reversed = axis === "y" ? cs.flexDirection === "column-reverse"
     : cs.flexDirection === "row-reverse" || cs.direction === "rtl";
-  const max = el[size] - el[view], p = el[pos];
-  const [lo, hi] = reversed && p <= 0 ? [-max, 0] : [0, max];
-  return dir > 0 ? p < hi - 1 : p > lo + 1;
+  return reversed && el[pos] <= 0 ? [-max, 0] : [0, max];
+}
+
+function canScroll(el, axis, dir) {
+  const r = scrollRange(el, axis);
+  if (!r) return false;
+  const p = el[axis === "y" ? "scrollTop" : "scrollLeft"];
+  return dir > 0 ? p < r[1] - 1 : p > r[0] + 1;
 }
 
 function scrollTarget(axis, dir) {
-  for (let el = lastClicked?.isConnected ? lastClicked : deepActive(); el && el !== document.body && el !== document.documentElement; el = el.parentElement || el.getRootNode().host)
-    if (el.nodeType === 1 && canScroll(el, axis, dir)) return el;
+  // angeklickter/per f gewählter Bereich: am Rand dort bleiben, statt auf einen anderen Scroller (z. B. die Liste daneben) zu springen
+  let atEdge = null;
+  for (let el = lastClicked?.isConnected ? lastClicked : deepActive(); el && el !== document.body && el !== document.documentElement; el = el.parentElement || el.getRootNode().host) {
+    if (el.nodeType !== 1) continue;
+    if (canScroll(el, axis, dir)) return el;
+    if (!atEdge && scrollRange(el, axis)) atEdge = el;
+  }
+  if (atEdge) return atEdge;
   // fixiertes Overlay in der Bildmitte (z. B. Cookie-Dialog, auch im Shadow-DOM) vor der Seite scrollen
   let hit = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
   while (hit && vkShadow(hit)) { const inner = vkShadow(hit).elementFromPoint(innerWidth / 2, innerHeight / 2); if (!inner || inner === hit) break; hit = inner; }
@@ -185,7 +198,7 @@ function scroll(axis, amount, e) {
   const v = px(y ? (root ? innerHeight : el.clientHeight) : (root ? innerWidth : el.clientWidth));
   const behavior = e.repeat ? "instant" : "smooth", prop = y ? "top" : "left";
   if (isFinite(v)) el.scrollBy({ [prop]: v, behavior });
-  else el.scrollTo({ [prop]: v > 0 ? (y ? el.scrollHeight : el.scrollWidth) : 0, behavior });
+  else { const r = scrollRange(el, axis) || [0, 0]; el.scrollTo({ [prop]: v > 0 ? r[1] : r[0], behavior }); }
 }
 
 // --- Navigation ---------------------------------------------------------------------------------

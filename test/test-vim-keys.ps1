@@ -179,6 +179,11 @@ try {
     Check ([int](Js 'return list.scrollTop') -gt 0 -and [int](Js 'return chat.scrollTop') -eq 0) "f s, j j scrollt die Chatliste"
     Send-FFKeys "fa"; Start-Sleep -Milliseconds 200; Send-FFKeys "kk"; Start-Sleep -Milliseconds 500
     Check ([int](Js 'return chat.scrollTop') -lt 0) "f a, k k scrollt den Verlauf (column-reverse)"
+    $l0 = [int](Js 'return list.scrollTop')
+    Send-FFKeys "G"; Start-Sleep -Milliseconds 800; Send-FFKeys "d"; Start-Sleep -Milliseconds 500
+    Check ([int](Js 'return chat.scrollTop') -ge -1 -and [int](Js 'return list.scrollTop') -eq $l0) "G, d am unteren Rand: Verlauf bleibt Ziel, Chatliste unbewegt"
+    Send-FFKeys "gg"; Start-Sleep -Milliseconds 800
+    Check ([int](Js 'return chat.scrollTop + chat.scrollHeight - chat.clientHeight') -le 1) "gg im Verlauf (column-reverse) geht nach oben"
     Send-FFKeys "F"; Start-Sleep -Milliseconds 200; Check ((Scrollers) -eq "") "F zeigt keine Scrollbereiche"
     Send-FFKeys $esc
 
