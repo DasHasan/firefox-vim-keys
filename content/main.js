@@ -28,7 +28,7 @@ function exclusion() {
 
 function deepActive() {
   let a = document.activeElement;
-  while (a && a.shadowRoot && a.shadowRoot.activeElement) a = a.shadowRoot.activeElement;
+  while (a && vkShadow(a)?.activeElement) a = vkShadow(a).activeElement;
   return a;
 }
 
@@ -64,11 +64,19 @@ addEventListener("keyup", e => {
   if (swallowed.delete(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); }
 }, true);
 
+// <c-[> wirkt wie Esc (wie in Vim), erreicht die Seite aber nie: viele Seiten belegen Esc selbst
+// (Dialog/Chat schließen), mit <c-[> verlässt man nur die eigenen Modi
 addEventListener("keydown", e => {
   if (!e.isTrusted || e.isComposing) return;
   userActed = true;
-  const key = VK.keyName(e);
-  if (!key) return;
+  const name = VK.keyName(e);
+  if (!name) return;
+  if (name !== "<c-[>") return onKeyDown(e, name);
+  onKeyDown(e, "<esc>");
+  if (!exclusion()?.disabled) swallow(e);
+}, true);
+
+function onKeyDown(e, key) {
 
   if (find.active) { e.stopImmediatePropagation(); if (find.onKey(key)) swallow(e); return; }
   if (vomnibar.active) { e.stopImmediatePropagation(); if (vomnibar.onKey(key)) swallow(e); return; }
@@ -111,7 +119,7 @@ addEventListener("keydown", e => {
   reset();
   hud.hide();
   run(hit.cmd, n, hit.opts, e);
-}, true);
+}
 
 function run(cmd, n, opts, e) {
   if (HINT_ACTIONS[cmd]) return hints.start(cmd, opts);
@@ -132,8 +140,14 @@ function canScroll(el, axis, dir) {
   const root = el === document.scrollingElement;
   const [pos, size, view] = axis === "y" ? ["scrollTop", "scrollHeight", "clientHeight"] : ["scrollLeft", "scrollWidth", "clientWidth"];
   if (el[size] - el[view] < 2) return false;
-  if (!root && !/(auto|scroll|overlay)/.test(getComputedStyle(el)[axis === "y" ? "overflowY" : "overflowX"])) return false;
-  return dir > 0 ? el[pos] + el[view] < el[size] - 1 : el[pos] > 0;
+  const cs = getComputedStyle(el);
+  if (!root && !/(auto|scroll|overlay)/.test(cs[axis === "y" ? "overflowY" : "overflowX"])) return false;
+  // umgekehrte Layouts (z. B. Chat-Verläufe mit column-reverse, RTL): Position läuft von -(size-view) bis 0
+  const reversed = axis === "y" ? cs.flexDirection === "column-reverse"
+    : cs.flexDirection === "row-reverse" || cs.direction === "rtl";
+  const max = el[size] - el[view], p = el[pos];
+  const [lo, hi] = reversed && p <= 0 ? [-max, 0] : [0, max];
+  return dir > 0 ? p < hi - 1 : p > lo + 1;
 }
 
 function scrollTarget(axis, dir) {
@@ -141,7 +155,7 @@ function scrollTarget(axis, dir) {
     if (el.nodeType === 1 && canScroll(el, axis, dir)) return el;
   // fixiertes Overlay in der Bildmitte (z. B. Cookie-Dialog, auch im Shadow-DOM) vor der Seite scrollen
   let hit = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
-  while (hit?.shadowRoot) { const inner = hit.shadowRoot.elementFromPoint(innerWidth / 2, innerHeight / 2); if (!inner || inner === hit) break; hit = inner; }
+  while (hit && vkShadow(hit)) { const inner = vkShadow(hit).elementFromPoint(innerWidth / 2, innerHeight / 2); if (!inner || inner === hit) break; hit = inner; }
   let overlayScroller = null;
   for (let el = hit; el && el !== document.body && el !== document.documentElement; el = el.parentElement || el.getRootNode().host) {
     if (el.nodeType !== 1) continue;

@@ -1,0 +1,13 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Geschlossenes Shadow-DOM</title></head>
+<body>
+  <closed-widget id="host"></closed-widget>
+  <script>
+    window.log = [];
+    const root = host.attachShadow({ mode: "closed" });
+    root.innerHTML = '<button id="b">Anmelden</button> <div id="ptr" style="cursor:pointer">Zeiger</div> <input id="inp">';
+    root.getElementById("b").onclick = () => log.push("click:b");
+    root.getElementById("ptr").onclick = () => log.push("click:ptr");
+    window.closedInput = root.getElementById("inp");
+  </script>
+</body></html>

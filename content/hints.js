@@ -22,7 +22,8 @@ const hints = (() => {
     const ti = el.getAttribute("tabindex");
     if (ti !== null && +ti >= 0) return true;
     // Web-Apps mit JS-Klickhandlern: Zeiger-Cursor, aber nur das äußerste Element
-    return getComputedStyle(el).cursor === "pointer" && el.parentElement && getComputedStyle(el.parentElement).cursor !== "pointer";
+    const parent = el.parentElement || el.getRootNode().host;
+    return getComputedStyle(el).cursor === "pointer" && parent && getComputedStyle(parent).cursor !== "pointer";
   }
 
   function hitRect(el) {
@@ -37,17 +38,33 @@ const hints = (() => {
     return null;
   }
 
-  // sichtbare anklickbare Elemente nach out, sichtbare Unterframes (frameId) nach frames
-  function collect(root, out, frames) {
+  // scrollbarer Bereich (z. B. Chatliste und Nachrichtenverlauf), groß genug, um ihn gezielt anzuwählen
+  function isScroller(el) {
+    if (el === document.documentElement || el === document.body || el.clientHeight < 50 || el.clientWidth < 50) return false;
+    return canScroll(el, "y", 1) || canScroll(el, "y", -1) || canScroll(el, "x", 1) || canScroll(el, "x", -1);
+  }
+
+  // sichtbarer Teil eines Scrollbereichs: der Marker sitzt oben links im sichtbaren Ausschnitt
+  function visibleRect(el) {
+    const r = el.getBoundingClientRect();
+    const left = Math.max(r.left, 0), top = Math.max(r.top, 0);
+    const right = Math.min(r.right, innerWidth), bottom = Math.min(r.bottom, innerHeight);
+    return right - left >= 20 && bottom - top >= 20 ? { left, top, right, bottom, width: right - left, height: bottom - top } : null;
+  }
+
+  // sichtbare anklickbare Elemente nach out, sichtbare Unterframes (frameId) nach frames;
+  // scroll: zusätzlich scrollbare Bereiche (nur bei f), Auswahl macht sie zum Ziel von j/k
+  function collect(root, out, frames, scroll) {
     for (const el of root.querySelectorAll("*")) {
-      if (el.shadowRoot) collect(el.shadowRoot, out, frames);
+      const shadow = vkShadow(el);
+      if (shadow) collect(shadow, out, frames, scroll);
       if (el.localName === "iframe" || el.localName === "frame") {
         if (hitRect(el)) { const id = browser.runtime.getFrameId(el); if (id >= 0) frames.push(id); }
         continue;
       }
-      if (el.localName.startsWith("vim-keys-") || !isClickable(el)) continue;
-      const r = hitRect(el);
-      if (r) out.push({ el, r });
+      if (el.localName.startsWith("vim-keys-")) continue;
+      if (isClickable(el)) { const r = hitRect(el); if (r) out.push({ el, r }); }
+      else if (scroll && isScroller(el)) { const r = visibleRect(el); if (r) out.push({ el, r, scroller: true }); }
     }
     return out;
   }
@@ -61,14 +78,15 @@ const hints = (() => {
   }
 
   function show(labels) {
-    items = found.slice(0, labels.length).map(({ el, r }, i) => {
+    items = found.slice(0, labels.length).map(({ el, r, scroller }, i) => {
       const m = vkEl("div", `position:fixed;left:${Math.max(0, r.left)}px;top:${Math.max(0, r.top)}px;` +
-        "font:bold 11px/1.2 ui-monospace,Consolas,monospace;color:#302505;background:linear-gradient(#fff785,#ffc542);" +
-        "border:1px solid #c38a22;border-radius:3px;padding:0 3px;box-shadow:0 1px 3px #0005;text-transform:uppercase;white-space:nowrap");
+        `font:bold 11px/1.2 ui-monospace,Consolas,monospace;color:${scroller ? "#d0021b" : "#302505"};` +
+        "background:linear-gradient(#fff785,#ffc542);border:1px solid #c38a22;border-radius:3px;padding:0 3px;box-shadow:0 1px 3px #0005;text-transform:uppercase;white-space:nowrap");
       m.append(vkEl("span", "color:#d4ac3a"), vkEl("span"));
       m.dataset.label = labels[i];
       m.style.zIndex = i;
-      return { el, label: labels[i], marker: m };
+      if (scroller) m.dataset.scroller = "";
+      return { el, label: labels[i], marker: m, scroller };
     });
     found = [];
     o.root.replaceChildren(...items.map(it => it.marker));
@@ -122,7 +140,7 @@ const hints = (() => {
     switch (msg.type) {
       case "hintsCollect": {
         const frames = [];
-        found = collect(document, [], frames);
+        found = collect(document, [], frames, msg.scroll);
         return Promise.resolve({ count: found.length, frames });
       }
       case "hintsShow": show(msg.labels); return;
@@ -131,7 +149,8 @@ const hints = (() => {
       case "hintsHit": {
         const it = items.find(i => i.label === msg.label);
         clear();
-        if (it) HINT_ACTIONS[msg.cmd](msg.opts).run(it.el);
+        if (it?.scroller) vkFocusScroller(it.el);
+        else if (it) HINT_ACTIONS[msg.cmd](msg.opts).run(it.el);
         return Promise.resolve(true);
       }
       case "hintsStop":
@@ -165,6 +184,18 @@ function vkClick(el) {
   if (el.focus && !el.contains(document.activeElement)) el.focus({ preventScroll: true });
   vkMouse(el, "pointerup"); vkMouse(el, "mouseup");
   el.click();
+}
+
+// Scrollbereich als Ziel für j/k/d/u/gg/G merken (wie ein Klick hinein) und kurz umranden
+function vkFocusScroller(el) {
+  lastClicked = el;
+  window.focus();
+  const r = el.getBoundingClientRect();
+  const box = vkEl("div", `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;` +
+    "box-sizing:border-box;border:3px solid #d0021b;border-radius:4px;pointer-events:none;z-index:2147483647;transition:opacity .4s");
+  const o = vkOverlay("vim-keys-scrollmark", "inset:0;pointer-events:none;");
+  o.root.append(box); o.attach();
+  setTimeout(() => { box.style.opacity = "0"; setTimeout(() => o.host.remove(), 450); }, 500);
 }
 
 function vkOpenInTab(el, active) {

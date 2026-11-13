@@ -9,6 +9,12 @@ function vkOverlay(tag, hostCss, mode = "closed") {
   return { host, root, attach() { if (!host.isConnected) document.documentElement.append(host); } };
 }
 
+// Shadow-Root eines Seitenelements, auch geschlossen (nur Content-Scripts in Firefox dürfen das);
+// eigene Overlays bleiben außen vor, ihre geschlossenen Roots gehen die Tastenlogik nichts an
+function vkShadow(el) {
+  return el.localName.startsWith("vim-keys-") ? el.shadowRoot : el.openOrClosedShadowRoot;
+}
+
 function vkEl(tag, css, text) {
   const el = document.createElement(tag);
   if (css) el.style.cssText = css;

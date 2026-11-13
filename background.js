@@ -125,7 +125,7 @@ async function hintsCollect(tabId, st) {
     const frameId = queue.shift();
     if (seen.has(frameId)) continue;
     seen.add(frameId);
-    const r = await toFrame(tabId, frameId, { type: "hintsCollect" });
+    const r = await toFrame(tabId, frameId, { type: "hintsCollect", scroll: st.cmd === "LinkHints.activate" && st.opts?.button !== "right" });
     if (!r) continue;
     if (r.count) found.push({ frameId, count: r.count });
     queue.push(...r.frames);

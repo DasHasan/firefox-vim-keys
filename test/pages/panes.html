@@ -1,0 +1,13 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Scrollbereiche</title>
+<style>body{margin:0;display:flex;height:100vh;font:16px sans-serif} .pane{overflow-y:auto;height:100%}
+#list{width:30%;border-right:1px solid #888} #chat{flex:1;display:flex;flex-direction:column-reverse}
+.pane p{margin:0;padding:20px}</style></head>
+<body>
+  <div class="pane" id="list"></div>
+  <div class="pane" id="chat"></div>
+  <script>
+    for (let i = 0; i < 60; i++) { list.append(Object.assign(document.createElement("p"), { textContent: "Chat " + i }));
+      chat.append(Object.assign(document.createElement("p"), { textContent: "Nachricht " + i })); }
+  </script>
+</body></html>

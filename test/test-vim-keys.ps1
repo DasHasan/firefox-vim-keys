@@ -121,6 +121,11 @@ try {
     Send-FFKeys $esc; Check ((Labels) -eq "") "Esc beendet Hints"
     Send-FFKeys "ff"; Check ((Labels) -eq "") "f f beendet Hints"
     Send-FFKeys "F"; Send-FFKeys "F"; Check ((Labels) -eq "") "F F beendet Hints"
+    $null = Js 'window.pageKeys = 0; addEventListener("keydown", e => { if (e.ctrlKey && e.code === "BracketLeft") pageKeys++ }); return 1'
+    Send-FFKeys "f"; Send-FFChord @($ctrl, "["); Start-Sleep -Milliseconds 200
+    Check ((Labels) -eq "") "<c-[> beendet Hints wie Esc"
+    Send-FFChord @($ctrl, "["); Start-Sleep -Milliseconds 100
+    Check ([int](Js 'return pageKeys') -eq 0) "<c-[> erreicht die Seite nie"
     Send-FFKeys "fd"; Start-Sleep -Milliseconds 200; Check ((Log) -eq "click:b") "f d klickt Knopf"
     Send-FFKeys "fl"; Start-Sleep -Milliseconds 200; Check ((Log) -like "*click:ptr") "f l klickt Element mit Zeiger-Cursor"
     Send-FFKeys "fe"; Start-Sleep -Milliseconds 200; Check ((Js 'return document.activeElement.id') -eq "inp") "f e fokussiert Eingabefeld"
@@ -154,6 +159,28 @@ try {
     $t0 = TopHint; Send-FFKeys " "; Start-Sleep -Milliseconds 200; $t1 = TopHint
     Check ($t0 -and $t1 -and $t0 -ne $t1) "Leertaste rotiert ueberlappende Hints ($t0 -> $t1)"
     Send-FFKeys $esc; Start-Sleep -Milliseconds 200
+
+    Write-Host "Geschlossenes Shadow-DOM"
+    Open-FFUrl "$base/shadow.html"; Start-Sleep -Milliseconds 300
+    Send-FFKeys "f"; Start-Sleep -Milliseconds 200
+    $l = Labels; Check ($l -eq "s,a,d") "f findet Knopf, Zeiger-Element und Eingabefeld ($l)"
+    Send-FFKeys "s"; Start-Sleep -Milliseconds 200; Check ((Log) -eq "click:b") "f s klickt Knopf ($(Log))"
+    Send-FFKeys "fa"; Start-Sleep -Milliseconds 200; Check ((Log) -like "*click:ptr") "f a klickt Zeiger-Element ($(Log))"
+    Send-FFKeys "fd"; Start-Sleep -Milliseconds 200; Send-FFKeys "jk"; Start-Sleep -Milliseconds 100
+    Check ((Js 'return closedInput.value') -eq "jk") "Tippen im Eingabefeld erreicht das Feld"
+    Send-FFKeys $esc
+
+    Write-Host "Scrollbereiche per f"
+    function Scrollers { Js 'const h = document.querySelector("vim-keys-hints"); return h && h.isConnected ? [...h.shadowRoot.children].filter(m => "scroller" in m.dataset).map(m => m.dataset.label).join(",") : ""' }
+    Open-FFUrl "$base/panes.html"; Start-Sleep -Milliseconds 300
+    Send-FFKeys "f"; Start-Sleep -Milliseconds 200
+    $l = Scrollers; Check ($l -eq "s,a") "f markiert Chatliste und Verlauf ($l)"
+    Send-FFKeys "s"; Start-Sleep -Milliseconds 200; Send-FFKeys "jj"; Start-Sleep -Milliseconds 500
+    Check ([int](Js 'return list.scrollTop') -gt 0 -and [int](Js 'return chat.scrollTop') -eq 0) "f s, j j scrollt die Chatliste"
+    Send-FFKeys "fa"; Start-Sleep -Milliseconds 200; Send-FFKeys "kk"; Start-Sleep -Milliseconds 500
+    Check ([int](Js 'return chat.scrollTop') -lt 0) "f a, k k scrollt den Verlauf (column-reverse)"
+    Send-FFKeys "F"; Start-Sleep -Milliseconds 200; Check ((Scrollers) -eq "") "F zeigt keine Scrollbereiche"
+    Send-FFKeys $esc
 
     Write-Host "Hints ueber Frames"
     Open-FFUrl "$base/frames.html"; Start-Sleep -Milliseconds 800
