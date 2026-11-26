@@ -6,7 +6,13 @@ function vkOverlay(tag, hostCss, mode = "closed") {
   const host = document.createElement(tag);
   host.style.cssText = "all:initial;position:fixed;z-index:2147483647;" + hostCss;
   const root = host.attachShadow({ mode });
-  return { host, root, attach() { if (!host.isConnected) document.documentElement.append(host); } };
+  // Als Popover in den Top-Layer: sonst liegen wir unter modalen <dialog>s/Vollbild (z-index hilft dort nicht)
+  // und wären dank inert nicht fokussierbar. Neu öffnen schiebt uns über das zuletzt geöffnete Top-Layer-Element
+  host.popover = "manual";
+  return { host, root, attach() {
+    if (!host.isConnected) document.documentElement.append(host);
+    try { if (host.matches(":popover-open")) host.hidePopover(); host.showPopover(); } catch {}
+  } };
 }
 
 // Shadow-Root eines Seitenelements, auch geschlossen (nur Content-Scripts in Firefox dürfen das);

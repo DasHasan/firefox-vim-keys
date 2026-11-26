@@ -287,6 +287,17 @@ try {
       $null = Invoke-FF "WebDriver:CloseWindow"; SwitchTo $main
     }
 
+    Write-Host "Modaler Dialog (Top-Layer)"
+    Open-FFUrl "$base/modal.html"; Start-Sleep -Milliseconds 300
+    Send-FFKeys "f"; Start-Sleep -Milliseconds 300
+    $info = Js @'
+const h = document.querySelector("vim-keys-hints"), ms = [...h.shadowRoot.children];
+const top = [h.matches(":popover-open")];  // Top-Layer, nach dem Dialog geoeffnet
+return ms.length + "|" + ms.filter(m => "scroller" in m.dataset).length + "|" + top.every(Boolean);
+'@
+    Check ($info -eq "2|1|true") "f im modalen Dialog: nur Close-Knopf und Dialog-Scroller, Scroller nur im Dialog, Hints obenauf ($info)"
+    Send-FFKeys $esc; Start-Sleep -Milliseconds 200
+
     Write-Host "Hilfe"
     Send-FFKeys "?"; Start-Sleep -Milliseconds 300
     Check (Js 'return !!document.querySelector("vim-keys-help")') "? zeigt Hilfe"

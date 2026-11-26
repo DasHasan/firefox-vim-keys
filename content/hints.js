@@ -64,7 +64,8 @@ const hints = (() => {
       }
       if (el.localName.startsWith("vim-keys-")) continue;
       if (isClickable(el)) { const r = hitRect(el); if (r) out.push({ el, r }); }
-      else if (scroll && isScroller(el)) { const r = visibleRect(el); if (r) out.push({ el, r, scroller: true }); }
+      // hinter einem modalen <dialog> ist die Seite inert: dort keine Scrollbereiche anbieten
+      else if (scroll && isScroller(el) && (!document.querySelector(":modal") || document.querySelector(":modal").contains(el))) { const r = visibleRect(el); if (r) out.push({ el, r, scroller: true }); }
     }
     return out;
   }

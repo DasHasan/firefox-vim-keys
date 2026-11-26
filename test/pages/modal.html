@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Modaler Dialog</title>
+<!-- wie LinkedIn: modales <dialog> im Top-Layer, Seite dahinter inert, mit eigenem Scrollbereich dahinter -->
+<div id="bgscroll" style="height:200px;width:300px;overflow:auto"><div style="height:2000px">Hintergrund-Scroller</div></div>
+<a href="#bg" id="bglink">Hintergrund-Link</a>
+<dialog id="dlg">
+  <button id="close" onclick="dlg.close()">Schließen</button>
+  <div id="dscroll" style="height:150px;width:300px;overflow:auto"><div style="height:1000px">Dialoginhalt</div></div>
+</dialog>
+<script>dlg.showModal()</script>
